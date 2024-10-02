@@ -1,12 +1,17 @@
 package br.edu.scl.ifsp.sdm.contactlist.view
 
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.ArrayAdapter
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import br.edu.scl.ifsp.sdm.contactlist.R
+import br.edu.scl.ifsp.sdm.contactlist.adapter.ContactAdapter
 import br.edu.scl.ifsp.sdm.contactlist.databinding.ActivityMainBinding
+import br.edu.scl.ifsp.sdm.contactlist.model.Constant.EXTRA_CONTACT
 import br.edu.scl.ifsp.sdm.contactlist.model.Contact
 
 class MainActivity : AppCompatActivity() {
@@ -18,22 +23,47 @@ class MainActivity : AppCompatActivity() {
     private val contactList : MutableList<Contact> = mutableListOf()
 
     //Adapter para preencher a lista de contatos
-    private val contactAdapter: ArrayAdapter<String> by lazy {
-        //Constrututor do arrayadapter. Primeiro parametro é o contexto (o this, referencia essa activity),
-        // segundo é o layout do item da lista que ele vai inflar (simple_list_item_1 é um layout padrão do android),
-        //que nada mais é que um textview. Já o terceiro parametro é a lista de contatos (o dataservice, que precisa
-        // ser convertido em lista/array de string no nosso caso).
-        //Depois de criar o adapter precisamos associar ele com a listview (adapterView)
-        ArrayAdapter<String>(
+    private val contactAdapter: ContactAdapter by lazy {
+        ContactAdapter(
+        //Constrututor do adapter. Primeiro parametro é o contexto (o this, referencia essa activity),
             this,
-            android.R.layout.simple_list_item_1,
-            contactList.map { it.toString() }
+        //Já o segundo parametro é a lista de contatos (o dataservice).
+        //Depois de criar o adapter precisamos associar ele com a listview (adapterView)
+            contactList
         )
     }
+
+    //Criei um contrato que espera um resultado de uma activity
+    private lateinit var carl:ActivityResultLauncher<Intent>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(amb.root)
+
+        setSupportActionBar(amb.toolbarIn.toolbar)
+        supportActionBar?.subtitle = getString(R.string.contact_list)
+
+        carl = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                //pega o contato que foi retornado pela activity de contato. Data é um bundle que foi inferido ao contact
+                //o getParcelableExtra é um método que pega um objeto que foi passado como parâmetro para a activity
+                //Esse método é deprecado a partir da API 33, o que significa que ele ainda funciona, mas não é recomendado
+
+                //o getParcelableExtra é um método que pega um objeto que foi passado como parâmetro para a activity
+                val contact = result.data?.getParcelableExtra<Contact>(EXTRA_CONTACT)
+                //aqui usei also ao invés de let pois precisei fazer duas coisas: adicionar o contato na lista e notificar o adapter
+                contact?.also {
+                     if(contactList.any{it.id == contact.id}) {
+                         // Editar contato
+                     } else {
+                         //se o contato já existe, atualiza ele
+                        contactList.add(contact)
+                     }
+                    //preciso notificicar se o adpter foi alterado
+                    contactAdapter.notifyDataSetChanged()
+                }
+            }
+        }
 
         fillContats()
 
@@ -56,19 +86,8 @@ class MainActivity : AppCompatActivity() {
         return when(item.itemId) {
             //se foi o adicionar
             R.id.addContactMi -> {
-//                //cria um novo contato
-//                val newContact = Contact(
-//                    contactList.size + 1,
-//                    "Nome ${contactList.size + 1}",
-//                    "Endereço ${contactList.size + 1}",
-//                    "Telefone 1234-${contactList.size + 1}",
-//                    "Email ${contactList.size + 1}"
-//                )
-//                //adiciona o novo contato na lista
-//                contactList.add(newContact)
-//                //notifica o adapter que a lista mudou
-//                contactAdapter.notifyDataSetChanged()
-                return true
+                carl.launch(Intent(this, ContactActivity::class.java))
+                true
             } else -> {
                 false
             }
@@ -76,7 +95,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fillContats() {
-        for (i in 1..50) {
+        for (i in 1..10) {
             contactList.add(
                 Contact(
                 i,

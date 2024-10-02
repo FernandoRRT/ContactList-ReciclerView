@@ -6,4 +6,9 @@
     <string name="address">Address</string>
     <string name="phone">Phone</string>
     <string name="email">Email</string>
+    <string name="contact_details">Contact Details</string>
+    <string name="contact_list">Contact list</string>
+    <string name="tile_name">Name</string>
+    <string name="tile_email">Email</string>
+    <string name="tile_phone">Phone</string>
 </resources>
