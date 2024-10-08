@@ -12,8 +12,10 @@ import android.widget.ArrayAdapter
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.recyclerview.widget.LinearLayoutManager
 import br.edu.scl.ifsp.sdm.contactlist.R
 import br.edu.scl.ifsp.sdm.contactlist.adapter.ContactAdapter
+import br.edu.scl.ifsp.sdm.contactlist.adapter.ContactRvAdapter
 import br.edu.scl.ifsp.sdm.contactlist.databinding.ActivityMainBinding
 import br.edu.scl.ifsp.sdm.contactlist.model.Constant.EXTRA_CONTACT
 import br.edu.scl.ifsp.sdm.contactlist.model.Constant.EXTRA_VIEW_CONTACT
@@ -28,14 +30,8 @@ class MainActivity : AppCompatActivity() {
     private val contactList : MutableList<Contact> = mutableListOf()
 
     //Adapter para preencher a lista de contatos
-    private val contactAdapter: ContactAdapter by lazy {
-        ContactAdapter(
-        //Constrututor do adapter. Primeiro parametro é o contexto (o this, referencia essa activity),
-            this,
-        //Já o segundo parametro é a lista de contatos (o dataservice).
-        //Depois de criar o adapter precisamos associar ele com a listview (adapterView)
-            contactList
-        )
+    private val contactAdapter: ContactRvAdapter by lazy {
+        ContactRvAdapter(contactList)
     }
 
     //Criei um contrato que espera um resultado de uma activity
@@ -74,40 +70,15 @@ class MainActivity : AppCompatActivity() {
 
         fillContats()
 
-        //o contactsLv é a id fa ListView que criei no layout
-        amb.contactsLv.adapter = contactAdapter
+        //o contactsRv é a id fa RecyclerView que criei no layout
+        //Ao contrário do LisTView, o recicler permite trabalhar com diferentes tipos de layout
+        amb.contactsRv.adapter = contactAdapter
+        //mas para isso ele exige um gerenciador de layout
+        amb.contactsRv.layoutManager = LinearLayoutManager(this)
+        //Tem que registrar o RecyclerView para que um context menu seja exibido quando um item da lista for pressionado e segurado por um tempo.
+        // ao contrário do anterior, isso não serve mais --> registerForContextMenu(amb.contactsRv)
 
-        //Refere-se a uma ListView que está dentro do binding amb
-        //contactsLv é o ID da ListView dentro do layout XML, e amb.contactsLv permite que você acesse essa lista.
-        //Estamos recebendo o contactAdapter, é uma instância de ContactAdapter.
-        amb.contactsLv.adapter = contactAdapter
-        //registra a ListView (contactsLv) para que um context menu seja exibido quando um item da lista for pressionado e segurado por um tempo.
-        //registerForContextMenu(View): Esse diz ao sistema Android que a ListView (amb.contactsLv) tem um menu de contexto.
-        //Agora ele vai procurar pelos métodos onCreateContextMenu e onContextItemSelected para criar e tratar o menu de contexto.
-        registerForContextMenu(amb.contactsLv)
-        //Só para constar, coloque no onDestroy um unregisterForContextMenu(amb.contactsLv) para você desregistrar o menu de contexto.
-        // Veja mais no fim do código.
-
-
-        //Aqui eu criei um listener para o clique em um item da lista. O clique curto vai permitir visualizar o contato
-        amb.contactsLv.setOnItemClickListener { _, _, position, _ ->
-            //pega o contato que foi clicado
-            val contact = contactList[position]
-            //cria um intent para abrir a activity de contato
-            val viewContactIntent = Intent(this, ContactActivity::class.java)
-            //passa o contato como parâmetro para a activity
-            viewContactIntent.putExtra(EXTRA_CONTACT, contact)
-            viewContactIntent.putExtra(EXTRA_VIEW_CONTACT, true)
-            //inicia a activity dessa forma pois eu não preciso de um retorno dela.
-            startActivity(viewContactIntent)
-
-            //tudo numa chamada só
-//            startActivity(Intent(this, ContactActivity::class.java).apply {
-//                putExtra(EXTRA_CONTACT, contactList[position])
-//                putExtra(EXTRA_VIEW_CONTACT, contact)
-//            })
-        }
-    }
+   }
 
     //override do método que cria o menu
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
@@ -178,7 +149,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterForContextMenu(amb.contactsLv)
     }
 
     private fun fillContats() {
