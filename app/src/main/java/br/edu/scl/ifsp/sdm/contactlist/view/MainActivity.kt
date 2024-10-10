@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity(), OnContactClickListener {
 
     //Adapter para preencher a lista de contatos
     private val contactAdapter: ContactRvAdapter by lazy {
-        ContactRvAdapter(contactList)
+        ContactRvAdapter(contactList, this)
     }
 
     //Criei um contrato que espera um resultado de uma activity
@@ -58,12 +58,14 @@ class MainActivity : AppCompatActivity(), OnContactClickListener {
                          // Editar contato
                          val position = contactList.indexOfFirst { it.id == newOrEditedContact.id }
                          contactList[position] = newOrEditedContact
+                         //preciso notificicar se o adpter foi alterado
+                         contactAdapter.notifyItemChanged(position)
                      } else {
                          //se o contato já existe, atualiza ele
                         contactList.add(newOrEditedContact)
-                     }
                     //preciso notificicar se o adpter foi alterado
-                    contactAdapter.notifyDataSetChanged()
+                         contactAdapter.notifyItemInserted(contactList.lastIndex)
+                     }
                 }
             }
         }
@@ -103,54 +105,12 @@ class MainActivity : AppCompatActivity(), OnContactClickListener {
         }
     }
 
-    //Aqui criamos o menu de contexto que vai aparecer ao fazer um long click em um item da lista
-    //Para que ele apareça, temos que associar adapter view ao menu de contexto. Isso eu chamo lá na onCreate
-    override fun onCreateContextMenu(
-        menu: ContextMenu?,
-        v: View?, menuInfo:
-        ContextMenu.ContextMenuInfo?) {
-        super.onCreateContextMenu(menu, v, menuInfo)
-        //infla o menu de contexto que criei no res/menu/context_menu_main.xml
-        menuInflater.inflate(R.menu.context_menu_main, menu)
-    }
-
-    //Esse é o corpo da função que trata as opções do menu de contexto.
-    override fun onContextItemSelected(item: MenuItem): Boolean {
-        //pega a posição do item que foi clicado
-        val position = (item.menuInfo as AdapterView.AdapterContextMenuInfo).position
-        return when(item.itemId){
-            R.id.removeContactMi -> {
-                //remove o item da lista
-                contactList.removeAt(position)
-                //notifica o adapter que a lista foi alterada
-                contactAdapter.notifyDataSetChanged()
-                //Avisa o usuário que o contato foi removido
-                Toast.makeText(this, getString(R.string.contato_removido), Toast.LENGTH_SHORT).show()
-                true
-            }
-            R.id.editContactMi -> {
-                //pega o contato que foi clicado
-                val contact = contactList[position]
-                //cria um intent para abrir a activity de contato
-                val editContactIntent = Intent(this, ContactActivity::class.java)
-                //passa o contato como parâmetro para a activity
-                editContactIntent.putExtra(EXTRA_CONTACT, contact)
-                //inicia a activity
-                carl.launch(editContactIntent)
-                //fazendo tudo numa única linha fica
-    //carl.launch(Intent(this, ContactActivity::class.java).apply {putExtra(EXTRA_CONTACT, contactList[position])})
-                true
-            }
-            else -> {
-                false
-            }
-        }
-    }
 
     override fun onDestroy() {
         super.onDestroy()
     }
 
+    //Aqui criamos os tratamentos de clique curto e longo para o RecyclerView
     //tratamento de click curto para ReciclerView
     override fun onContactClick(position: Int) {
         Intent(this, ContactActivity::class.java).apply {
@@ -159,6 +119,28 @@ class MainActivity : AppCompatActivity(), OnContactClickListener {
         }.also {
             startActivity(it)
         }
+    }
+
+    override fun onRemoveContactMenuItemClick(position: Int) {
+        //remove o item da lista
+        contactList.removeAt(position)
+        //notifica o adapter que a lista foi alterada
+        contactAdapter.notifyItemRemoved(position)
+        //Avisa o usuário que o contato foi removido
+        Toast.makeText(this, getString(R.string.contato_removido), Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onEditContactMenuItemClick(position: Int) {
+        //pega o contato que foi clicado
+        val contact = contactList[position]
+        //cria um intent para abrir a activity de contato
+        val editContactIntent = Intent(this, ContactActivity::class.java)
+        //passa o contato como parâmetro para a activity
+        editContactIntent.putExtra(EXTRA_CONTACT, contact)
+        //inicia a activity
+        carl.launch(editContactIntent)
+        //fazendo tudo numa única linha fica
+        //carl.launch(Intent(this, ContactActivity::class.java).apply {putExtra(EXTRA_CONTACT, contactList[position])})
     }
 
     private fun fillContats() {
